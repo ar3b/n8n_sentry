@@ -1,0 +1,385 @@
+{
+  "name": "N8N Error Workflow for Sentry",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1060,
+        -80
+      ],
+      "id": "f1863ff4-7dfa-4160-b250-d8fbe18f6e72",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "9ed8d62d-3238-492f-8234-d24ac65c08b4",
+                    "leftValue": "={{ $('Error Trigger').item.json.workflow.id }}",
+                    "rightValue": "ADD TEST WORKFLOW ID HEERE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "TEST"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "5e1ef073-2aed-449c-ae0a-fe2c36163343",
+                    "leftValue": "={{ $('Error Trigger').item.json.workflow.id }}",
+                    "rightValue": "ADD LIVE WORKFLOW ID HEERE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "LIVE"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "4de46b70-688a-4d43-b3bc-cab46864e023",
+                    "leftValue": "={{ $('Error Trigger').item.json.workflow.id }}",
+                    "rightValue": "ADD PRODUCTION WORKFLOW ID HEERE",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "PROD"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -620,
+        -80
+      ],
+      "id": "9610d11f-8964-4f55-a07b-0eaebd10167e",
+      "name": "Environment switcher"
+    },
+    {
+      "parameters": {
+        "jsCode": "error_value = $input.first().json.execution.error.value \n    ? $input.first().json.execution.error.value \n    : $input.first().json.execution.error.name;\n\ndsn = \"https://\" + $input.first().json.creds.sentry_public_key + \"@\" + $input.first().json.creds.sentry_host + \"/\" + $input.first().json.creds.sentry_project_id\n\nevent_payload = {\n  event_id: $input.first().json.event_id.replace(/-/g, \"\"),\n  level: \"error\",\n  environment: $input.first().json.environment, \n  tags: {\n    service: \"n8n\"\n  },\n  \"platform\": \"javascript\",\n  message: {\n    formatted: $input.first().json.execution.error.message\n  },\n  contexts: {\n    workflow: {\n      name: $input.first().json.workflow.name,\n      id: $input.first().json.workflow.id\n    },\n    node: {\n      name: $input.first().json.execution.error.node.name,\n      type: $input.first().json.execution.error.node.type\n    },\n    mode: {\n      \"value\": $input.first().json.execution.mode\n    }\n  },\n  extra: {\n    ...$input.first().json.execution.error.context,\n    ...{node: $input.first().json.execution.error.node},\n    ...{execution: {\n      id: $input.first().json.execution.id,\n      url: $input.first().json.execution.url\n    }}\n  },\n  \"exception\": {\n    values: [{\n      \"type\": $input.first().json.execution.error.name,\n      \"value\": error_value\n    }]\n  }\n}\nevent = {\n  envelope_header: {\n    event_id: $input.first().json.event_id.replace(/-/g, \"\"),\n    sent_at: $now,\n    dsn: dsn\n  },\n  event_payload: event_payload,\n  item_header: {\n    type: \"event\"\n  },\n  \"sentry_url\": \"https://\" + $input.first().json.creds.sentry_host + \"/api/\" + $input.first().json.creds.sentry_project_id + \"/envelope/\"\n}\nreturn event"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        80,
+        -100
+      ],
+      "id": "e1aa20b6-54b8-4bd2-87ce-201b259fec50",
+      "name": "Fill envelope object"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fdd72046-952d-4c20-ac9d-c15eadd7f6f0",
+              "name": "environment",
+              "value": "test",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -400,
+        -260
+      ],
+      "id": "e1369e80-baad-41cf-9b39-213ab4cb9bf7",
+      "name": "Test ENV"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fdd72046-952d-4c20-ac9d-c15eadd7f6f0",
+              "name": "environment",
+              "value": "live",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -400,
+        -80
+      ],
+      "id": "fb30a9fd-c19b-46ee-94dd-21cd055c7502",
+      "name": "Live ENV"
+    },
+    {
+      "parameters": {
+        "jsCode": "body = JSON.stringify($input.first().json.envelope_header) + \"\\n\" + \n  JSON.stringify($input.first().json.item_header) + \"\\n\" + \n  JSON.stringify($input.first().json.event_payload)\n\nreturn {\n  sentry_url: $input.first().json.sentry_url,\n  request_body: body\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        280,
+        -100
+      ],
+      "id": "704b9e2f-fcdc-4a7e-ac42-5440b555cf0e",
+      "name": "Create request body"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "{\n  \"creds\": {\n    \"sentry_public_key\": \"\",\n    \"sentry_project_id\": \"\",\n    \"sentry_host\": \"\"\n  }\n}\n",
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -860,
+        -80
+      ],
+      "id": "85863957-4fb8-4d03-b940-844b4503b8f6",
+      "name": "Sentry Creds"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fdd72046-952d-4c20-ac9d-c15eadd7f6f0",
+              "name": "environment",
+              "value": "production",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -400,
+        80
+      ],
+      "id": "22814587-7e88-48cc-8add-42f3216ca9ad",
+      "name": "Production ENV"
+    },
+    {
+      "parameters": {
+        "action": "generate",
+        "dataPropertyName": "event_id"
+      },
+      "type": "n8n-nodes-base.crypto",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        -100
+      ],
+      "id": "57b23916-1ad8-4a08-89f7-e6e2d17a64d6",
+      "name": "Generate event_id"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.sentry_url }}",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "=application/x-sentry-envelope",
+        "body": "={{ $json.request_body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        -100
+      ],
+      "id": "f53bcc6e-44a2-45da-ae30-436a3960eaad",
+      "name": "Send Error",
+      "alwaysOutputData": false,
+      "notesInFlow": false
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Sentry Creds",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Environment switcher": {
+      "main": [
+        [
+          {
+            "node": "Test ENV",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Live ENV",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Production ENV",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fill envelope object": {
+      "main": [
+        [
+          {
+            "node": "Create request body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Test ENV": {
+      "main": [
+        [
+          {
+            "node": "Generate event_id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Live ENV": {
+      "main": [
+        [
+          {
+            "node": "Generate event_id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sentry Creds": {
+      "main": [
+        [
+          {
+            "node": "Environment switcher",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create request body": {
+      "main": [
+        [
+          {
+            "node": "Send Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Production ENV": {
+      "main": [
+        [
+          {
+            "node": "Generate event_id",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate event_id": {
+      "main": [
+        [
+          {
+            "node": "Fill envelope object",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "any"
+  },
+  "versionId": "81d6d4cc-555d-4985-8a0a-7ee25dca9bd0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "af5606ab9cc0dcd65fc97d37247019a644419d9fcec74b989a1bcfa7580f5ee7"
+  },
+  "id": "c5Ab8HtIJSnqKyZP",
+  "tags": []
+}
